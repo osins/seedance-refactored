@@ -5,9 +5,9 @@ import os
 
 def get_api_base_host() -> str:
     """
-    获取API基础主机地址
+    Get the API base host address
 
     Returns:
-        API基础主机地址，不包含版本路径
+        API base host address, without version path
     """
     return os.getenv("VOLCES_BASE_HOST") or "https://api.volces.com"

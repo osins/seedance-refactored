@@ -45,8 +45,8 @@ class SeedanceRequestBody(BaseModel):
     @classmethod
     def validate_stop_sequences(cls, v):
         if v is not None:
-            if len(v) > 4:  # 限制停止序列数量
-                raise ValueError('最多允许4个停止序列')
+            if len(v) > 4:  # Limit the number of stop sequences
+                raise ValueError('Maximum of 4 stop sequences allowed')
             for seq in v:
                 if len(seq) > 100:
                     raise ValueError('Stop sequences must be less than 100 characters')
