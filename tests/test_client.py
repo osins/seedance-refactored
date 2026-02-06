@@ -1,8 +1,9 @@
 """Tests for the Seedance API client."""
 
 import pytest
-from src.seedance.v3.client import call_seedance_api, get_seedance_models
-from src.seedance.v3.models import SeedanceRequestBody, SeedanceResponseBody
+from src.seedance.v3.api.api_v3_contents_generations_tasks import seed_generations_tasks, get_seedance_models
+from src.seedance.v3.model.request_body import SeedanceRequestBody
+from src.seedance.v3.model.response_body import SeedanceResponseBody
 
 
 def test_seedance_request_body_creation():
@@ -42,14 +43,14 @@ def test_call_seedance_api_with_valid_request(monkeypatch):
             response._content = json.dumps({"error": "Not Found"}).encode('utf-8')
             return response
 
-        monkeypatch.setattr("src.seedance.v3.client.requests.post", mock_post)
+        monkeypatch.setattr("requests.sessions.Session.post", mock_post)
         
         request_body = SeedanceRequestBody(
             prompt="Test prompt for API call"
         )
         
         # Since we're mocking the response, this should handle the error gracefully
-        response = call_seedance_api(request_body)
+        response = seed_generations_tasks(request_body)
         assert isinstance(response, SeedanceResponseBody)
     finally:
         # Restore original key if it existed, or remove if we added it
@@ -76,7 +77,7 @@ def test_get_seedance_models(monkeypatch):
             response._content = json.dumps({"error": "Not Found"}).encode('utf-8')
             return response
 
-        monkeypatch.setattr("src.seedance.v3.client.requests.get", mock_get)
+        monkeypatch.setattr("requests.sessions.Session.get", mock_get)
         
         # This should handle the error gracefully
         response = get_seedance_models()

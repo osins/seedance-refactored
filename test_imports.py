@@ -7,7 +7,8 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 try:
-    from seedance.v3.models import SeedanceRequestBody, SeedanceResponseBody
+    from seedance.v3.model.request_body import SeedanceRequestBody
+    from seedance.v3.model.response_body import SeedanceResponseBody
     print("Models imported successfully")
 except ImportError as e:
     print(f"Import error: {e}")

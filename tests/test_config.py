@@ -3,7 +3,7 @@
 import os
 import pytest
 from src.seedance.config import get_api_base_host
-from src.seedance.v3.utils import get_v3_api_base_url
+from src.seedance.v3.config.config import get_v3_api_base_url
 
 
 class TestConfigFunctions:

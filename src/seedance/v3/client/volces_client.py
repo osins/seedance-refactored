@@ -5,6 +5,7 @@ import time
 import hashlib
 from typing import Optional
 from requests.sessions import Session
+from requests.exceptions import ConnectionError, Timeout
 from ..model.request_body import SeedanceRequestBody
 from ..model.response_body import SeedanceResponseBody
 from ..config.config import get_v3_api_base_url
@@ -80,7 +81,7 @@ class VolcesClient:
             Response body from the API
         """
         logger = logging.getLogger(__name__)
-        
+
         # Log the API call
         logger.info(f"Making API call with prompt: {request_body.prompt[:50]}{'...' if len(request_body.prompt) > 50 else ''}")
 
@@ -89,7 +90,13 @@ class VolcesClient:
         try:
             # Validate input
             if not isinstance(request_body, SeedanceRequestBody):
-                raise TypeError("request_body must be an instance of SeedanceRequestBody")
+                error_response = SeedanceResponseBody(
+                    error={
+                        "type": "validation_error",
+                        "message": "request_body must be an instance of SeedanceRequestBody"
+                    }
+                )
+                return error_response
 
             # Check cache for deterministic requests
             cache_key = self.cache_mechanism.generate_cache_key(request_body)

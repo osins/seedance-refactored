@@ -3,8 +3,9 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock
-from src.seedance.v3 import VolcesClient, SeedanceRequestBody, SeedanceResponseBody, APIErrorType
-from src.seedance.v3.api_client import ConfigValidator
+from src.seedance.v3 import VolcesClient, SeedanceRequestBody, SeedanceResponseBody
+from src.seedance.v3.utils.enums import APIErrorType
+from src.seedance.v3.utils.validation_utils import ConfigValidator
 
 
 class TestImprovedFeatures:
@@ -61,41 +62,38 @@ class TestImprovedFeatures:
     
     def test_cache_key_generation(self):
         """Test cache key generation for deterministic requests"""
-        os.environ['VOLCES_API_KEY'] = 'valid-test-key-12345'
+        from src.seedance.v3.client.cache_mechanism import CacheMechanism
         
-        client = VolcesClient()
-        
+        cache_mechanism = CacheMechanism()
+
         # Deterministic request (temperature = 0) should generate cache key
         deterministic_request = SeedanceRequestBody(
             prompt="Test prompt",
             model="volces-v3",
             temperature=0.0  # Deterministic
         )
-        
-        cache_key = client._generate_cache_key(deterministic_request)
+
+        cache_key = cache_mechanism.generate_cache_key(deterministic_request)
         assert cache_key is not None
         assert isinstance(cache_key, str)
         assert len(cache_key) == 32  # MD5 hash length
-        
+
         # Non-deterministic request (temperature != 0) should not generate cache key
         non_deterministic_request = SeedanceRequestBody(
             prompt="Test prompt",
             model="volces-v3",
             temperature=0.7  # Non-deterministic
         )
-        
-        cache_key = client._generate_cache_key(non_deterministic_request)
+
+        cache_key = cache_mechanism.generate_cache_key(non_deterministic_request)
         assert cache_key is None
-        
-        # Clean up
-        del os.environ['VOLCES_API_KEY']
     
-    def test_cache_functionality(self, monkeypatch):
+    def test_cache_functionality(self):
         """Test caching functionality"""
-        os.environ['VOLCES_API_KEY'] = 'valid-test-key-12345'
-        
-        client = VolcesClient()
-        
+        from src.seedance.v3.client.cache_mechanism import CacheMechanism
+
+        cache_mechanism = CacheMechanism()
+
         # Create a deterministic request
         request = SeedanceRequestBody(
             prompt="Cache test prompt",
@@ -103,40 +101,19 @@ class TestImprovedFeatures:
             temperature=0.0,
             max_tokens=10
         )
-        
-        # Mock the API call to return a fixed response
-        def mock_post(*args, **kwargs):
-            import requests
-            response = MagicMock()
-            response.status_code = 200
-            response.json.return_value = {
-                "id": "test-response",
-                "model": "volces-v3",
-                "choices": [{"text": "Cached response"}],
-                "usage": {"total_tokens": 10}
-            }
-            response.raise_for_status.return_value = None
-            return response
-        
-        monkeypatch.setattr(client.session, 'post', mock_post)
-        
-        # First call should make API request and cache the result
-        response1 = client.call_volces_api(request)
-        
-        # Second call with same parameters should return cached result
-        # (this is difficult to test directly since the cache is in-memory)
-        # Instead, we'll just verify the cache methods work correctly
-        cache_key = client._generate_cache_key(request)
+
+        # Test cache key generation
+        cache_key = cache_mechanism.generate_cache_key(request)
+        assert cache_key is not None
+
+        # Test setting and getting cached response
         test_response = SeedanceResponseBody(id="cached", model="test")
-        client._set_cache_response(cache_key, test_response)
-        
-        cached_response = client._get_cached_response(cache_key)
+        cache_mechanism.set_cache_response(cache_key, test_response)
+
+        cached_response = cache_mechanism.get_cached_response(cache_key)
         assert cached_response is not None
         assert cached_response.id == "cached"
         assert cached_response.model == "test"
-        
-        # Clean up
-        del os.environ['VOLCES_API_KEY']
     
     def test_logging_in_client_operations(self, monkeypatch, caplog):
         """Test that logging works in client operations"""

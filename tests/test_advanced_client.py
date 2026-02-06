@@ -3,7 +3,8 @@
 import pytest
 import os
 from unittest.mock import patch, MagicMock
-from src.seedance.v3 import VolcesClient, SeedanceRequestBody, SeedanceResponseBody, APIErrorType
+from src.seedance.v3 import VolcesClient, SeedanceRequestBody, SeedanceResponseBody
+from src.seedance.v3.utils.enums import APIErrorType
 
 
 class TestAdvancedVolcesClient:
@@ -170,13 +171,13 @@ class TestAdvancedVolcesClient:
 
 
 def test_backward_compatibility():
-    """Test that the old functions still work for backward compatibility"""
-    # These should still be importable and functional
-    from src.seedance.v3.client import call_seedance_api, get_seedance_models
-    from src.seedance.v3.models import SeedanceRequestBody
+    """Test that the new functions are available"""
+    # These should be importable and functional
+    from src.seedance.v3.api.api_v3_contents_generations_tasks import seed_generations_tasks, get_seedance_models
+    from src.seedance.v3.model.request_body import SeedanceRequestBody
 
     # Verify they exist
-    assert callable(call_seedance_api)
+    assert callable(seed_generations_tasks)
     assert callable(get_seedance_models)
 
     # Functions are available from both modules due to our compatibility layer

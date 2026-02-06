@@ -1,7 +1,8 @@
 """Example usage of the Volces API client"""
 
-from src.seedance.v3.models import SeedanceRequestBody, SeedanceResponseBody
-from src.seedance.v3.client import seed_generations_tasks, get_seedance_models
+from src.seedance.v3.model.request_body import SeedanceRequestBody
+from src.seedance.v3.model.response_body import SeedanceResponseBody
+from src.seedance.v3.api.api_v3_contents_generations_tasks import seed_generations_tasks, get_seedance_models
 
 def example_usage():
     """Example of how to use the Volces API client"""

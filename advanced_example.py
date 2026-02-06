@@ -62,7 +62,7 @@ def basic_compatibility_example():
     
     # These still work as before for compatibility
     from src.seedance.v3.client import call_seedance_api, get_seedance_models
-    from src.seedance.v3.models import SeedanceRequestBody
+    from src.seedance.v3.model.request_body import SeedanceRequestBody
     
     try:
         # Create a request

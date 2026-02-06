@@ -6,17 +6,21 @@ These tests validate the complete workflow of the API client
 import os
 import pytest
 from unittest.mock import patch, MagicMock
-from src.seedance.v3.client import call_seedance_api, get_seedance_models
-from src.seedance.v3.models import SeedanceRequestBody, SeedanceResponseBody
+from src.seedance.v3.api.api_v3_contents_generations_tasks import seed_generations_tasks, get_seedance_models
+from src.seedance.v3.model.request_body import SeedanceRequestBody
+from src.seedance.v3.model.response_body import SeedanceResponseBody
 
 
 class TestEndToEndWorkflows:
     """End-to-end tests for complete workflows"""
     
-    def test_complete_generation_workflow(self):
+    def test_complete_generation_workflow(self, monkeypatch):
         """Test the complete workflow from request creation to response handling"""
+        # Set environment variable for the test
+        monkeypatch.setenv('VOLCES_API_KEY', 'test-key-longer-than-ten-chars')
+        
         # Step 1: Get available models
-        with patch('src.seedance.v3.api_client.VolcesClient.get_volces_models') as mock_get:
+        with patch('src.seedance.v3.client.volces_client.VolcesClient.get_volces_models') as mock_get:
             mock_response = SeedanceResponseBody(
                 object="list",
                 data=[
@@ -29,9 +33,9 @@ class TestEndToEndWorkflows:
                 ]
             )
             mock_get.return_value = mock_response
-            
+
             models_response = get_seedance_models()
-            
+
             # Verify models were retrieved
             assert models_response.object == "list"
             # Need to access the data differently since it's in the model
@@ -40,7 +44,7 @@ class TestEndToEndWorkflows:
             if 'data' in response_dict:
                 assert len(response_dict["data"]) == 1
                 assert response_dict["data"][0]["id"] == "volces-v3-standard"
-        
+
         # Step 2: Use the model information to create a generation request
         request_body = SeedanceRequestBody(
             prompt="Write a creative paragraph about innovation in 2026",
@@ -48,9 +52,9 @@ class TestEndToEndWorkflows:
             max_tokens=150,
             temperature=0.8
         )
-        
+
         # Step 3: Call the generation API
-        with patch('src.seedance.v3.api_client.VolcesClient.call_volces_api') as mock_post:
+        with patch('src.seedance.v3.client.volces_client.VolcesClient.call_volces_api') as mock_post:
             mock_response = SeedanceResponseBody(
                 id="gen-innovation-2026",
                 model="volces-v3-standard",
@@ -68,9 +72,9 @@ class TestEndToEndWorkflows:
                 }
             )
             mock_post.return_value = mock_response
-            
-            generation_response = call_seedance_api(request_body)
-            
+
+            generation_response = seed_generations_tasks(request_body)
+
             # Verify the generation response
             assert generation_response.id == "gen-innovation-2026"
             assert generation_response.model == "volces-v3-standard"
@@ -79,10 +83,13 @@ class TestEndToEndWorkflows:
             if generation_response.usage:
                 assert generation_response.usage["completion_tokens"] == 85
     
-    def test_error_workflow_consistency(self):
+    def test_error_workflow_consistency(self, monkeypatch):
         """Test that errors are handled consistently across different endpoints"""
+        # Set environment variable for the test
+        monkeypatch.setenv('VOLCES_API_KEY', 'test-key-longer-than-ten-chars')
+        
         # Simulate network error for model retrieval
-        with patch('src.seedance.v3.api_client.VolcesClient.get_volces_models') as mock_get:
+        with patch('src.seedance.v3.client.volces_client.VolcesClient.get_volces_models') as mock_get:
             mock_response = SeedanceResponseBody(
                 error={
                     "type": "unknown_error",
@@ -91,21 +98,21 @@ class TestEndToEndWorkflows:
                 }
             )
             mock_get.return_value = mock_response
-            
+
             models_response = get_seedance_models()
-            
+
             # Verify error structure
             assert models_response.error is not None
             assert models_response.error["type"] == "unknown_error"
             assert "Connection timeout" in models_response.error["message"]
-        
+
         # Simulate HTTP error for generation
         request_body = SeedanceRequestBody(
             prompt="Test prompt",
             model="volces-v3"
         )
-        
-        with patch('src.seedance.v3.api_client.VolcesClient.call_volces_api') as mock_post:
+
+        with patch('src.seedance.v3.client.volces_client.VolcesClient.call_volces_api') as mock_post:
             mock_response = SeedanceResponseBody(
                 error={
                     "type": "request_error",
@@ -114,17 +121,20 @@ class TestEndToEndWorkflows:
                 }
             )
             mock_post.return_value = mock_response
-            
-            gen_response = call_seedance_api(request_body)
-            
+
+            gen_response = seed_generations_tasks(request_body)
+
             # Verify error structure
             assert gen_response.error is not None
             assert "type" in gen_response.error
     
-    def test_multiple_concurrent_requests_simulation(self):
+    def test_multiple_concurrent_requests_simulation(self, monkeypatch):
         """Test simulating multiple concurrent API requests"""
-        import time
+        # Set environment variable for the test
+        monkeypatch.setenv('VOLCES_API_KEY', 'test-key-longer-than-ten-chars')
         
+        import time
+
         # Mock responses for concurrent requests
         def create_mock_response(request_body):
             return SeedanceResponseBody(
@@ -133,23 +143,23 @@ class TestEndToEndWorkflows:
                 choices=[{"index": 0, "text": f"Response to: {request_body.prompt}", "finish_reason": "stop"}],
                 usage={"prompt_tokens": len(request_body.prompt.split()), "completion_tokens": 20, "total_tokens": 30}
             )
-        
+
         # Create multiple requests
         requests = [
             SeedanceRequestBody(prompt=f"Prompt {i}", model="volces-v3", max_tokens=50)
             for i in range(5)
         ]
-        
+
         responses = []
-        
+
         # Process requests sequentially with patched function
         for i, request_body in enumerate(requests):
-            with patch('src.seedance.v3.api_client.VolcesClient.call_volces_api') as mock_call:
+            with patch('src.seedance.v3.client.volces_client.VolcesClient.call_volces_api') as mock_call:
                 mock_call.return_value = create_mock_response(request_body)
-                
-                response = call_seedance_api(request_body)
+
+                response = seed_generations_tasks(request_body)
                 responses.append(response)
-        
+
         # Verify all responses
         assert len(responses) == 5
         for i, response in enumerate(responses):
@@ -157,8 +167,11 @@ class TestEndToEndWorkflows:
             if response.choices:
                 assert f"Prompt {i}" in str(response.choices[0]["text"])
     
-    def test_request_response_data_integrity(self):
+    def test_request_response_data_integrity(self, monkeypatch):
         """Test that request data is properly transmitted and response data is correctly parsed"""
+        # Set environment variable for the test
+        monkeypatch.setenv('VOLCES_API_KEY', 'test-key-longer-than-ten-chars')
+        
         original_request = SeedanceRequestBody(
             prompt="Calculate the impact of quantum computing on cryptography",
             model="volces-v3-pro",
@@ -171,8 +184,8 @@ class TestEndToEndWorkflows:
             presence_penalty=0.1,
             frequency_penalty=0.1
         )
-        
-        with patch('src.seedance.v3.api_client.VolcesClient.call_volces_api') as mock_call:
+
+        with patch('src.seedance.v3.client.volces_client.VolcesClient.call_volces_api') as mock_call:
             mock_response = SeedanceResponseBody(
                 id="gen-quantum-crypto",
                 model="volces-v3-pro",
@@ -190,9 +203,9 @@ class TestEndToEndWorkflows:
                 }
             )
             mock_call.return_value = mock_response
-            
-            response = call_seedance_api(original_request)
-            
+
+            response = seed_generations_tasks(original_request)
+
             # Verify response structure and data integrity
             assert response.id == "gen-quantum-crypto"
             assert response.model == "volces-v3-pro"
