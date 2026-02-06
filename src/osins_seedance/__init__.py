@@ -1,4 +1,4 @@
-"""Seedance API Package"""
+"""Osins-Seedance API Package"""
 
 # Import v3 modules to make them accessible at package level
 from .v3 import seed_generations_tasks, get_seedance_models

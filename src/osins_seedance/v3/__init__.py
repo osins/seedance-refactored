@@ -1,4 +1,4 @@
-"""Seedance API v3 Module"""
+"""Osins-Seedance API v3 Module"""
 
 from .api.api_v3_contents_generations_tasks import seed_generations_tasks, get_seedance_models
 from .model.request_body import SeedanceRequestBody
@@ -8,7 +8,7 @@ from .client.volces_client import VolcesClient
 __all__ = [
     "seed_generations_tasks",
     "get_seedance_models",
-    "SeedanceRequestBody", 
+    "SeedanceRequestBody",
     "SeedanceResponseBody",
     "VolcesClient"
 ]
