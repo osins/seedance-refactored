@@ -3,6 +3,8 @@
 from .api.api_v3_contents_generations_tasks import seed_generations_tasks, get_seedance_models
 from .model.request_body import SeedanceRequestBody
 from .model.response_body import SeedanceResponseBody
+from .model.video_generation_request_body import VideoGenerationRequestBody
+from .model.video_generation_response_body import VideoGenerationResponseBody
 from .client.volces_client import VolcesClient
 
 __all__ = [
@@ -10,5 +12,7 @@ __all__ = [
     "get_seedance_models",
     "SeedanceRequestBody",
     "SeedanceResponseBody",
+    "VideoGenerationRequestBody",
+    "VideoGenerationResponseBody",
     "VolcesClient"
 ]

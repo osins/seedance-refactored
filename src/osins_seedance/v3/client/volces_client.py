@@ -8,6 +8,8 @@ from requests.sessions import Session
 from requests.exceptions import ConnectionError, Timeout
 from ..model.request_body import SeedanceRequestBody
 from ..model.response_body import SeedanceResponseBody
+from ..model.video_generation_request_body import VideoGenerationRequestBody
+from ..model.video_generation_response_body import VideoGenerationResponseBody
 from ..config.config import get_v3_api_base_url
 from ..utils.validation_utils import ConfigValidator
 from ..utils.cache_utils import generate_cache_key, get_cached_response, set_cache_response
@@ -142,6 +144,72 @@ class VolcesClient:
             else:
                 logger.error(f"API call failed after {duration:.2f}s with unexpected error: {str(e)}")
                 return self.error_handling.handle_general_exception(e, "call_volces_api")
+
+    @retry_on_failure(max_retries=3, backoff_factor=1.0, status_codes=[502, 503, 504])
+    def call_video_generation_api(self, request_body: VideoGenerationRequestBody) -> VideoGenerationResponseBody:
+        """
+        Call the Volces Video Generation API with the given request body.
+
+        Args:
+            request_body: Request body containing parameters for the video generation task
+
+        Returns:
+            Response body from the API with task ID
+        """
+        logger = logging.getLogger(__name__)
+
+        # Log the API call
+        text_content = next((item.text for item in request_body.content if item.type == "text"), "No text content")
+        logger.info(f"Making video generations API call with model: {request_body.model}, text: {text_content[:50]}{'...' if len(text_content) > 50 else ''}")
+
+        start_time = time.time()
+
+        try:
+            # Validate input
+            if not isinstance(request_body, VideoGenerationRequestBody):
+                error_response = VideoGenerationResponseBody(
+                    error={
+                        "type": "validation_error",
+                        "message": "request_body must be an instance of VideoGenerationRequestBody"
+                    },
+                    status="failed"
+                )
+                return error_response
+
+            headers = self._get_auth_headers()
+
+            # Use the specific video generation endpoint
+            api_url = "https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks"
+            
+            response = self.session.post(
+                api_url,
+                headers=headers,
+                json=request_body.model_dump(exclude_unset=True),
+                timeout=60  # 60 seconds timeout for video generation
+            )
+
+            duration = time.time() - start_time
+            logger.info(f"Video generations API call completed in {duration:.2f}s with status {response.status_code}")
+
+            # Check for HTTP errors
+            response.raise_for_status()
+
+            # Parse response JSON
+            response_json = response.json()
+
+            # Create response model
+            result = VideoGenerationResponseBody(**response_json)
+
+            return result
+
+        except Exception as e:
+            duration = time.time() - start_time
+            if isinstance(e, (ConnectionError, Timeout)):
+                logger.error(f"Video generation API call failed after {duration:.2f}s with connection/timeout error: {str(e)}")
+                return self.error_handling.handle_request_exception(e, "call_video_generation_api")
+            else:
+                logger.error(f"Video generation API call failed after {duration:.2f}s with unexpected error: {str(e)}")
+                return self.error_handling.handle_general_exception(e, "call_video_generation_api")
 
     @retry_on_failure(max_retries=3, backoff_factor=1.0, status_codes=[502, 503, 504])
     def get_volces_models(self) -> SeedanceResponseBody:

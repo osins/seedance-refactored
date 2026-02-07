@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "osins-seedance"
-version = "0.1.1"
+version = "0.2.0"
 description = "Volces API Client Library"
 authors = [
     {name = "osins", email = "wangsying@gmail.com"}
